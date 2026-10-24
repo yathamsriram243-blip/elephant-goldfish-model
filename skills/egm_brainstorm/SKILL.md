@@ -39,10 +39,11 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
 
 1.  **Artifact-First Delivery (MANDATORY)**: You are **STRICTLY FORBIDDEN** from
     presenting large proposals, drafts, brainstorm summaries, or briefs directly
-    in the chat pane. You **MUST** write/update them directly to a file (e.g.,
-    `./concepts_brief.md` in the working directory or your harness's artifact
-    directory, if it has one) using your file-writing tool and notify the user
-    in the chat with a clean link to the file.
+    in the chat pane. You **MUST** write/update them directly to a file
+    (`.egm/concepts_brief.md`, or `<OutputDir>/concepts_brief.md` if `OutputDir`
+    is specified; with a parallel write to your harness's artifact directory or
+    pane if available) using your file-writing tool and notify the user in the
+    chat with a clean link to the file.
 2.  **Multi-Turn Open-Ended Clarification & Readiness Gate**: You **MUST** drill
     down into the concept through open-ended plain-text questions across
     multiple chat turns until the problem statement and boundaries are
@@ -86,6 +87,15 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     strictly one question (`len(questions) == 1`), be the sole tool call in the
     turn, and provide clear, action-oriented options without `(Recommended)`
     prefixes.
+14. **Directory Initialization & Transient Isolation**: Before writing any artifact
+    to `.egm/` (or `<OutputDir>`), verify that the target directory exists. If not,
+    create it. If writing to `.egm/`, ensure `.egm/.gitignore` exists containing `*`
+    (with a newline) so transient ideation briefs are never tracked or staged in git.
+
+## Inputs
+
+*   **`OutputDir`** (Optional): Target directory for generated brainstorm briefs.
+    Defaults to `.egm/` at the workspace root.
 
 ## The Goldfish Brainstorming Lenses
 
@@ -207,8 +217,10 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
 3.  **Deduplication**: Collect the raw findings from the Goldfish reviewers,
     deduplicate overlapping points, and format them into a cohesive analysis.
 4.  **Write/Update Artifact**: Format and write the synthesized brief to
-    `concepts_brief.md` in the working directory (or your harness's artifact
-    directory, if it has one) using your file-writing tool.
+    `.egm/concepts_brief.md` (or `<OutputDir>/concepts_brief.md`) using your
+    file-writing tool (with parallel write to your harness's artifact directory
+    or pane if available). Ensure `.egm/` and `.egm/.gitignore` (with `*`)
+    are created if not already present.
 
 The `concepts_brief.md` artifact follows this structure:
 
@@ -239,7 +251,8 @@ The `concepts_brief.md` artifact follows this structure:
 ### Step 3: Interactive Iteration & Refinement Loop
 
 1.  **Notify & Highlight (No Chat Dumps)**: Notify the user in chat that
-    `concepts_brief.md` has been updated (give its path). Highlight 2-3 key
+    `.egm/concepts_brief.md` (or `<OutputDir>/concepts_brief.md`) has been
+    updated (give its path). Highlight 2-3 key
     objections or open risks raised by the Goldfish reviewers.
 2.  **Iterate**: Ask the user how they wish to address the Goldfish objections
     (e.g., pivoting the approach, narrowing scope, or adding constraints).
@@ -248,8 +261,8 @@ The `concepts_brief.md` artifact follows this structure:
 
 ### Step 4: Finalize & Handoff
 
-1.  **Artifact Alignment**: Ask the user to review the final `concepts_brief.md`
-    artifact and confirm their alignment.
+1.  **Artifact Alignment**: Ask the user to review the final
+    `.egm/concepts_brief.md` artifact and confirm their alignment.
 2.  **Step 4 Handoff Gate Modal (Single-Select)**: Once approved, present the
     standardized handoff choices (using a structured question tool such as
     `ask_question` if your harness has one, or plain chat):
@@ -258,7 +271,7 @@ The `concepts_brief.md` artifact follows this structure:
     {
       "questions": [
         {
-          "question": "Brainstorming complete. concepts_brief.md is finalized. Select next step:",
+          "question": "Brainstorming complete. .egm/concepts_brief.md is finalized. Select next step:",
           "options": [
             "Publish concepts_brief.md as RFC for team feedback",
             "Proceed to /egm-draft (Initialize formal design document)",
@@ -272,8 +285,8 @@ The `concepts_brief.md` artifact follows this structure:
     ```
 
     *   **Option 0: `Publish concepts_brief.md as RFC for team feedback`**:
-        *   Write `concepts_brief.md` to `docs/designs/<feature_name>.md` using
-            your file-writing tool.
+        *   Copy or write `.egm/concepts_brief.md` (or `<OutputDir>/concepts_brief.md`)
+            to `docs/designs/<feature_name>.md` using your file-writing tool.
         *   Register the RFC in `docs/designs/SITEMAP.md` if it exists.
         *   Notify the user in chat that the RFC has been published and can be
             shared with the team for feedback before formal drafting. Remind the
@@ -281,14 +294,14 @@ The `concepts_brief.md` artifact follows this structure:
             initiated by running `/egm-draft docs/designs/<feature_name>.md`.
     *   **Option 1: `Proceed to /egm-draft (Initialize formal design
         document)`**:
-        *   Confirm that `concepts_brief.md` is saved in the working directory
-            or artifact directory.
+        *   Confirm that `concepts_brief.md` is saved in `.egm/concepts_brief.md`
+            (or `<OutputDir>/concepts_brief.md`).
         *   Instruct the user to run `/egm-draft` (or activate the `egm-draft`
             skill), noting that `/egm-draft` automatically ingests
-            `concepts_brief.md` as its Priority 1 intake source.
+            `.egm/concepts_brief.md` as its Priority 1 intake source.
     *   **Option 2: `Continue refining concepts_brief.md in ideation mode`**:
         *   Return to Step 3 iteration loop to drill into further edge cases or
             update the brief based on user chat input.
     *   **Option 3: `Conclude brainstorming and keep brief for later`**:
         *   Conclude the session gracefully. Remind the user that
-            `concepts_brief.md` remains saved for future reference.
+            `.egm/concepts_brief.md` remains saved for future reference.

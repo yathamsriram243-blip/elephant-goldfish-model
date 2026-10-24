@@ -31,10 +31,10 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
 
 1.  **Artifact-First Delivery (MANDATORY)**: You are **STRICTLY FORBIDDEN** from
     presenting large proposals, drafts, summaries, or plans directly in the chat
-    pane. You **MUST** write them to the working directory (or your harness's
-    artifact directory, if it has one) using your file-writing tool and then
-    tell the user in chat the file path and ask for review. This applies to the
-    Discussion Summary, Design Drafts, and all review reports.
+    pane. You **MUST** write them to `.egm/` (or `<OutputDir>`) using your
+    file-writing tool and then tell the user in chat the file path and ask for
+    review. This applies to all review reports (`.egm/<stage>_report.md` and
+    `.egm/consolidated_review_report.md`).
 2.  **Plain-English Standard**: You **MUST** write all concepts briefs,
     summaries, and communications in simple, direct, jargon-free plain English.
     Explain technical mechanisms directly. Do not summarize away substance or
@@ -67,6 +67,11 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     strictly one question (`len(questions) == 1`), be the sole tool call in the
     turn, and provide clear, action-oriented options without `(Recommended)`
     prefixes.
+12. **Directory Initialization & Transient Isolation**: Before writing any review
+    report to `.egm/` (or `<OutputDir>`), verify that the target directory exists.
+    If not, create it. If writing to `.egm/`, ensure `.egm/.gitignore` exists
+    containing `*` (with a newline) so review findings and intermediate reports
+    are never tracked or staged in git.
 
 ## Inputs
 
@@ -77,6 +82,8 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
 *   **`Step` (Optional)**: Specific pipeline preset or stage to run (e.g.
     `interactive`, `uninterrupted`, `feature_spec`, `implementation`, or an
     individual stage `5`, `6`, `7`, `8`, `9`). If omitted, the user is prompted.
+*   **`OutputDir`** (Optional): Target directory where review reports are saved.
+    Defaults to `.egm/` at the workspace root.
 
 ## Workflow
 
@@ -149,7 +156,7 @@ If your harness has no subagent tool, stop and tell the user: a review in the sa
     *   **Preset 1: `Consolidated report with all review rubrics`**: Proceed to
         Step 3 to discover the semantic split, then execute all five stages
         without pausing for checkpoints, consolidating findings into
-        `consolidated_review_report.md`.
+        `.egm/consolidated_review_report.md`.
     *   **Preset 2: `Feature spec only`**: **Bypass Step 3 semantic split
         discovery entirely**. Set `FeatureRange = 1..End`, set `DetailedRange =
         N/A`, and execute Stages 5, 6, 7, and 8 with checkpoints. Cleanly halt
@@ -234,11 +241,13 @@ plain chat):
 2.  **Resolution Semantics (Option 1 for Stages 7 and 9)**:
     *   **Hand-off to Resolver**: The agent invokes `egm-resolve` in the primary
         Elephant context window on the target range (`FeatureRange` or
-        `DetailedRange`), passing the parsed findings from `critic_report.md` or
-        `implementation_readiness_report.md`.
+        `DetailedRange`), passing the parsed findings from `.egm/critic_report.md`
+        (fallback `./critic_report.md`) or `.egm/implementation_readiness_report.md`
+        (fallback `./implementation_readiness_report.md`).
     *   **Resolution Workflow**: The Elephant classifies each finding (`PROPOSE
-        FIX` vs `CONTEST`), writes `goldfish_review_report.md`, and executes
-        approved edits on `TargetFile` via file editing tools.
+        FIX` vs `CONTEST`), writes `.egm/goldfish_review_report.md` (or
+        `<OutputDir>/goldfish_review_report.md`), and executes approved edits on
+        `TargetFile` via file editing tools.
     *   **Convergence**: After applying fixes, re-read `TargetFile` to
         recalculate line bounds, and either advance to the next stage or re-run
         the stage audit (enforcing max 1 re-audit limit).
@@ -250,10 +259,10 @@ plain chat):
         *   Re-read `TargetFile` to recalculate line shifts.
         *   Re-run the current stage subflow.
         *   **1-Audit Convergence Cap**: Each stage allows a maximum of 1
-            re-audit. If manual doc updates are requested again after a
-            re-audit, inform the author that the cap is reached, document
-            residual findings as accepted trade-offs, auto-bind Option 0, and
-            advance to the next stage.
+        re-audit. If manual doc updates are requested again after a
+        re-audit, inform the author that the cap is reached, document
+        residual findings as accepted trade-offs, auto-bind Option 0, and
+        advance to the next stage.
 4.  **Graceful Halt Semantics (`Pause Review`)**:
     *   Halt execution immediately with zero tools, preserving all report
         artifacts.
@@ -262,51 +271,50 @@ plain chat):
 
 1.  **Uninterrupted Stage Execution**: Execute all five review stages in
     sequence without interactive checkpoint pauses between steps. For each
-    stage, write the individual report file to the working directory (or your
-    harness's artifact directory, if it has one):
+    stage, write the individual report file to `.egm/` (or `<OutputDir>`):
     *   **Step 5 (Initial Zoom Out)**: Spawn `egm-synthesizer` (or direct
         subagent) with `Reviewers: [egm-zoom-out]` on `full file` → write
-        `zoom_out_report.md`.
+        `.egm/zoom_out_report.md`.
     *   **Step 6 (Comprehension Test)**: Spawn `egm-synthesizer` (or direct
         subagent) with `Reviewers: [egm-comprehension]` on `FeatureRange` &
-        `DetailedRange` → write `comprehension_report.md`.
+        `DetailedRange` → write `.egm/comprehension_report.md`.
     *   **Step 7 (Critic Review)**: Spawn `egm-synthesizer` (or direct
         subagents) with `Reviewers: [egm-design, egm-structural, egm-style]` on
-        `FeatureRange` → write `critic_report.md`.
+        `FeatureRange` → write `.egm/critic_report.md`.
     *   **Step 8 (Intermediate Zoom Out)**: Spawn `egm-synthesizer` (or direct
         subagent) with `Reviewers: [egm-zoom-out]` on `full file` → write
-        `intermediate_zoom_out_report.md`.
+        `.egm/intermediate_zoom_out_report.md`.
     *   **Step 9 (Implementation Readiness Test)**: Spawn `egm-synthesizer` (or
         direct subagents) with `Reviewers: [egm-implementation-readiness,
         egm-codebase-details, egm-style]` on `DetailedRange` → write
-        `implementation_readiness_report.md`.
+        `.egm/implementation_readiness_report.md`.
 2.  **Cross-Stage Synthesis & Deduplication**:
     *   Collect all findings across the 5 stage reports.
     *   Consolidate observations into actionable tasks by priority (🔴 Blocker, 🟡
         Major, 🟢 Nit).
     *   Build a Traceability Matrix mapping raw findings to consolidated action
         items.
-3.  **Deliverable Delivery**: Write to `consolidated_review_report.md` using
-    your file-writing tool.
+3.  **Deliverable Delivery**: Write to `.egm/consolidated_review_report.md` (or
+    `<OutputDir>/consolidated_review_report.md`) using your file-writing tool.
 4.  **Notify User**: Output a concise chat notification pointing to
-    `consolidated_review_report.md` (give its path).
+    `.egm/consolidated_review_report.md` (give its path).
 
 ### Subflow: Zoom Out Review
 
 1.  **Delegate to Synthesizer Subagent**: Spawn `egm-synthesizer` (or the
     specialized `egm-zoom-out` subagent at `agents/zoom_out.md`) on `full file`
     applying `resources/document_standards/zoom-out-standard.md`. When running
-    as Step 8 (Intermediate Zoom Out), include `zoom_out_report.md` path in
+    as Step 8 (Intermediate Zoom Out), include `.egm/zoom_out_report.md` (fallback `./zoom_out_report.md`) path in
     context and focus on additions/mitigations from Comprehension and Critic
     stages.
-2.  **Delivery**: Write findings to `zoom_out_report.md` (Stage 5) or
-    `intermediate_zoom_out_report.md` (Stage 8) using your file-writing tool.
+2.  **Delivery**: Write findings to `.egm/zoom_out_report.md` (Stage 5) or
+    `.egm/intermediate_zoom_out_report.md` (Stage 8) using your file-writing tool.
 3.  **Notify User (No Chat Dumps)**: Notify user that findings are written to
     the report file (give its path).
 4.  **Checkpoint Gate**: Present the tri-state gate following the Checkpoint
     Gate Protocol:
     *   **Stage 5**: Question: `"Stage 5 (Initial Zoom Out Review) completed.
-        Findings written to zoom_out_report.md. How would you like to
+        Findings written to .egm/zoom_out_report.md. How would you like to
         proceed?"`, Option 0: `"Proceed to next stage: Stage 6 (Comprehension
         Test)"`.
     *   **Stage 8 (Feature Spec Gates Only)**: Question: `"Stage 8 (Intermediate
@@ -315,7 +323,7 @@ plain chat):
         implementation planning"`.
     *   **Stage 8 (Interactive Full Flow)**: Question: `"Stage 8 (Intermediate
         Zoom Out) completed. Findings written to
-        intermediate_zoom_out_report.md. How would you like to proceed?"`,
+        .egm/intermediate_zoom_out_report.md. How would you like to proceed?"`,
         Option 0: `"Proceed to next stage: Stage 9 (Implementation Readiness
         Test)"`.
     *   All cases provide Option 1: `"I will update doc first (pause session;
@@ -328,13 +336,13 @@ plain chat):
     `egm-comprehension` subagent at `agents/comprehension.md`) on `FeatureRange`
     & `DetailedRange` applying
     `resources/document_standards/re-implementation-standard.md`.
-2.  **Delivery**: Write findings to `comprehension_report.md` using your
+2.  **Delivery**: Write findings to `.egm/comprehension_report.md` using your
     file-writing tool.
 3.  **Notify User (No Chat Dumps)**: Notify user that findings are written to
-    `comprehension_report.md` (give its path).
+    `.egm/comprehension_report.md` (give its path).
 4.  **Checkpoint Gate**: Present the Stage 6 tri-state gate:
     *   Question: `"Stage 6 (Comprehension Test) completed. Findings written to
-        comprehension_report.md. How would you like to proceed?"`
+        .egm/comprehension_report.md. How would you like to proceed?"`
     *   Option 0: `"Proceed to next stage: Stage 7 (Critic Review)"`
     *   Option 1: `"I will update doc first (pause session; notify me in chat
         when edits are complete to re-run)"`
@@ -347,10 +355,10 @@ plain chat):
     standards `{"egm-design": "feature-spec-standard", "egm-structural":
     "feature-spec-standard"}`.
 2.  **Notify User (No Chat Dumps)**: Notify user that findings are written to
-    `critic_report.md` (give its path).
+    `.egm/critic_report.md` (give its path).
 3.  **Checkpoint Gate**: Present the Stage 7 gate:
     *   Question: `"Stage 7 (Critic Review) completed. Findings written to
-        critic_report.md. How would you like to proceed?"`
+        .egm/critic_report.md. How would you like to proceed?"`
     *   Option 0: `"Proceed to next stage: Stage 8 (Intermediate Zoom Out
         Review)"`
     *   Option 1: `"Resolve findings with agent (evaluate findings, propose
@@ -360,8 +368,8 @@ plain chat):
     *   Option 3: `"Pause Review (save progress and exit)"`
 4.  **Remediation & Resolution (Option 1)**:
     *   Invoke `egm-resolve` in the primary Elephant context on `FeatureRange`,
-        passing findings from `critic_report.md` (or
-        `goldfish_review_report.md`).
+        passing findings from `.egm/critic_report.md` (fallback
+        `./critic_report.md` or `.egm/goldfish_review_report.md`).
     *   Execute approved fixes directly on `TargetFile` using file editing
         tools.
     *   After fixes are applied, re-read `TargetFile` to recalculate line
@@ -375,10 +383,10 @@ plain chat):
     `{"egm-implementation-readiness": "implementation-readiness-standard",
     "egm-codebase-details": "implementation-readiness-standard"}`.
 2.  **Notify User (No Chat Dumps)**: Notify user that findings are written to
-    `implementation_readiness_report.md` (give its path).
+    `.egm/implementation_readiness_report.md` (give its path).
 3.  **Terminal Checkpoint Gate**: Present the Stage 9 terminal gate:
     *   Question: `"Stage 9 (Implementation Readiness Test) completed. Report
-        written to implementation_readiness_report.md. How would you like to
+        written to .egm/implementation_readiness_report.md. How would you like to
         proceed?"`
     *   Option 0: `"Conclude review and finalize document"`
     *   Option 1: `"Resolve findings with agent (evaluate findings, propose
@@ -388,8 +396,8 @@ plain chat):
     *   Option 3: `"Pause Review (save progress and exit)"`
 4.  **Remediation & Resolution (Option 1)**:
     *   Invoke `egm-resolve` in the primary Elephant context on `DetailedRange`,
-        passing findings from `implementation_readiness_report.md` (or
-        `goldfish_review_report.md`).
+        passing findings from `.egm/implementation_readiness_report.md` (fallback
+        `./implementation_readiness_report.md` or `.egm/goldfish_review_report.md`).
     *   Execute approved fixes directly on `TargetFile` using file editing
         tools.
     *   After fixes are applied, re-read `TargetFile` to recalculate line

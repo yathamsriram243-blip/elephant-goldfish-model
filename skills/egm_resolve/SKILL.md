@@ -29,12 +29,14 @@ repairs, and manages interactive negotiation checkpoints.
 
 ## Inputs
 
-The caller or orchestration driver provides exactly these parameters:
+The caller or orchestration driver provides these parameters:
 
 *   **`TargetFile`**: Absolute or relative path to target document.
 *   **`LineRange`**: Exact line numbers (or `full file`).
 *   **`FindingsList`**: Aggregated flat list of findings from Goldfish
     reviewers.
+*   **`OutputDir`** (Optional): Target directory where `goldfish_review_report.md`
+    is written and read. Defaults to `.egm/` at the workspace root.
 
 ## Execution Workflow
 
@@ -50,6 +52,11 @@ The caller or orchestration driver provides exactly these parameters:
         display the final setup and verify the user is ready to continue.
 
 2.  Read `TargetFile` at `LineRange` by reading it and parse the `FindingsList`.
+3.  **Intake Fallback for Reports**: When reading an existing report artifact from
+    disk instead of memory, check for `goldfish_review_report.md` in:
+    1. `.egm/goldfish_review_report.md` (or `<OutputDir>/goldfish_review_report.md`)
+    2. `./goldfish_review_report.md` (working directory / root)
+    3. Conversation artifact directory or harness artifact pane
 
 ### Step 2: Evaluate & Categorize
 
@@ -63,9 +70,10 @@ For each finding in the list, determine:
 
 ### Step 3: Report Fixes
 
-Construct the final report and save it named
-`goldfish_review_report.md` in the working directory (or your harness's artifact directory, if it has one)
-using your file-writing tool. Use this layout:
+Construct the final report and save it named `.egm/goldfish_review_report.md`
+(or `<OutputDir>/goldfish_review_report.md`) using your file-writing tool.
+Ensure `.egm/` and `.egm/.gitignore` (with `*`) exist before writing so
+review reports are never tracked in git. Use this layout:
 
 ```markdown
 # Goldfish Annotated Review Report
@@ -90,10 +98,10 @@ using your file-writing tool. Use this layout:
 ### Step 4: Interactive Resolution Gate
 
 Before proceeding, output a visible chat message to the user: *"I have compiled
-the audit findings into `goldfish_review_report.md`. Please review the findings there and choose how you would like to
+the audit findings into `.egm/goldfish_review_report.md`. Please review the findings there and choose how you would like to
 proceed:
 
--   **Comment directly on the file**: Review `goldfish_review_report.md` in
+-   **Comment directly on the file**: Review `.egm/goldfish_review_report.md` in
     chat or the file and leave comments/edits to approve, reject, or contest
     specific items.
 -   **Auto accept**: Reply "auto accept" to batch-apply all proposed fixes

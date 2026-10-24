@@ -45,7 +45,7 @@ context is not a Goldfish review.
 
 ## Inputs
 
-The caller or user provides exactly these parameters:
+The caller or user provides these parameters:
 
 *   **`TargetFile`**: Absolute or relative path to target document.
 *   **`SemanticTarget`**: Descriptive targeting string (e.g., *"Target the H4
@@ -55,6 +55,8 @@ The caller or user provides exactly these parameters:
     paths).
 *   **`GoldfishContext`**: A reading list (source files, directories, or
     documentation URLs) fed to reviewers to establish their baseline.
+*   **`OutputDir`** (Optional): Target directory for review reports.
+    Defaults to `.egm/` at the workspace root.
 
 ## Path & Standard Resolution Logic
 
@@ -113,8 +115,9 @@ file` mode is specified, confirm full-file line bounds).
     *   **Hierarchical Dispatch (Synthesizer)**: Spawn the intermediate
         synthesizer subagent (`agents/synthesizer.md` / `egm-synthesizer`).
         The synthesizer spawns the Goldfish review swarm in
-        parallel, deduplicates findings, writes the report artifact, and
-        returns a single summary message to avoid context pollution in the root
+        parallel, deduplicates findings, writes the report artifact to
+        `.egm/goldfish_review_report.md` (or `<OutputDir>/goldfish_review_report.md`),
+        and returns a single summary message to avoid context pollution in the root
         conversation.
     *   **Direct Dispatch (Flat Swarm)**: Alternatively, spawn each requested
         reviewer subagent in `Reviewers` directly.
@@ -133,7 +136,9 @@ file` mode is specified, confirm full-file line bounds).
     to the **`egm-resolve`** workflow.
 2.  Execute the resolution workflow in the primary Elephant context:
     *   Categorize findings into `CONTEST` vs. `PROPOSE FIX`.
-    *   Save `goldfish_review_report.md` with your file-writing tool.
+    *   Save `.egm/goldfish_review_report.md` (or `<OutputDir>/goldfish_review_report.md`)
+        with your file-writing tool. Ensure `.egm/` and `.egm/.gitignore` (with `*`)
+        exist before writing so review reports are never tracked in git.
     *   Present the interactive decision gate (Auto accept, Continue, Interactive
         breakdown).
     *   Apply approved text repairs to `TargetFile` using your file-editing tool.

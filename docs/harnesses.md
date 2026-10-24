@@ -71,6 +71,22 @@ the review skills stop instead of running in the same context. Check actual
 tool availability rather than inferring it from the product name. This applies
 to ChatGPT modes that do not expose native fresh-context delegation.
 
+## Artifacts & Output Isolation
+
+All EGM skills write transient deliverables (concept briefs, intermediate
+design drafts, goldfish review reports, drift reports) to a dedicated `.egm/`
+directory at the root of the workspace.
+
+- **Git Isolation**: The first skill to write an artifact automatically creates
+  `.egm/` and `.egm/.gitignore` containing `*`. Transient session files are
+  never staged or committed in git.
+- **Custom Output Directory**: Callers can supply an optional `OutputDir`
+  parameter to redirect artifacts to another destination.
+- **Intake Fallbacks**: Skills ingesting predecessor deliverables (e.g.,
+  `egm-draft` reading `concepts_brief.md`, or `egm-resolve` reading
+  `goldfish_review_report.md`) check `.egm/` first, falling back to `./`
+  (workspace root), harness artifact panes, and scratch directories.
+
 ## Support Status & Contributing Other Harnesses
 
 **Antigravity**, **Claude Code**, and **Codex** pass automated installation, reviewer isolation, and end-to-end workflow fixtures.

@@ -18,6 +18,13 @@ When the user asks to detect drift across all designs or a set of READMEs, the
 goal is to identify all instances where the codebase has diverged or failed to
 implement the specifications described by those designs or READMEs.
 
+## Inputs
+
+*   **`TargetDir`** (Optional): Directory containing design documents or READMEs
+    to inspect. If omitted, the user is prompted to specify it.
+*   **`OutputDir`** (Optional): Target directory where drift reports are saved.
+    Defaults to `.egm/` at the workspace root.
+
 1.  **Check Input**: Verify a directory containing design documents or READMEs
     is provided. If not provided, ask the user to specify the target directory.
 2.  **List Documents**: List all files in the design directory.
@@ -44,8 +51,16 @@ implement the specifications described by those designs or READMEs.
 
 4.  **Report**: Produce a single report listing all discrepancies found.
 
-    *   Append the analysis for each file to `{YYYY-MM-DD}_DRIFT_REPORT.md`
-        using your file-writing tool.
+    *   Write or append the analysis for each file to `.egm/drift_report.md`
+        (or `<OutputDir>/drift_report.md`, with backward-compatible support
+        for `.egm/{YYYY-MM-DD}_drift_report.md` or `{YYYY-MM-DD}_DRIFT_REPORT.md`)
+        using your file-writing tool. When checking for prior reports to append to,
+        check `.egm/drift_report.md` -> `./drift_report.md` ->
+        `./{YYYY-MM-DD}_DRIFT_REPORT.md`.
+    *   **Directory Initialization & Transient Isolation**: Verify `.egm/`
+        (or `<OutputDir>`) exists before writing. If writing to `.egm/`,
+        ensure `.egm/.gitignore` exists containing `*` (with a newline)
+        so drift reports are never tracked or staged in git.
     *   Strict Format:
 
         ```markdown

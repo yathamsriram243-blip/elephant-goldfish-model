@@ -21,9 +21,11 @@ do not assume a particular cache directory, version, or checkout location.
 From `<plugin>/skills/<skill>/SKILL.md`, the plugin root is three parent
 directories above the file. Resolve bundled `agents/`, `resources/`, and
 `docs/` paths against that root. Resolve `references/` against the active
-skill's directory. Resolve user documents and generated artifacts against
-the user's working directory. Never substitute similarly named files in the
-user's project for bundled personas or standards.
+skill's directory. Resolve user documents against the user's working directory. Resolve generated
+artifacts (briefs, drafts, reports) to `.egm/` at the workspace root (or the
+configured `OutputDir`). An auto-created `.egm/.gitignore` containing `*`
+ensures transient session deliverables remain unstaged in git. Never substitute
+similarly named files in the user's project for bundled personas or standards.
 
 In ChatGPT Work, a skill may be exposed through a cloud resource identifier
 while supporting files live in the installed local bundle. Use the installed
@@ -70,8 +72,8 @@ ask one plain-text question and wait for the answer. Preserve the skill's
 readiness and section approval gates; tool unavailability is not approval.
 
 Link generated artifacts with absolute-path Markdown links such as
-`[design draft](/absolute/project/design_draft.md)`. For paths containing
-spaces use `[design draft](</absolute/my project/design_draft.md>)`.
+`[design draft](/absolute/project/.egm/design_draft.md)`. For paths containing
+spaces use `[design draft](</absolute/my project/.egm/design_draft.md>)`.
 Do not use `file://` links in Codex chat.
 
 ## Verification

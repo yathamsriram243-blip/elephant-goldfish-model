@@ -24,11 +24,14 @@ Stages 7 and 9), read its `SKILL.md` and follow it in the same thread. Do not
 use the `Skill` tool for EGM skills. Keep drafting and orchestration in the
 main context.
 Claude Code has no artifact comments. To request draft revisions, edit
-`design_draft.md` directly or add `<!-- -->` comments in it, or give the notes
-in chat; the model reads the draft again before each revision.
-Write briefs, drafts, and reports to the user's working directory. The
-per-session scratchpad is not the artifact directory: it belongs to one
-session, and the deliverables must outlive it.
+`.egm/design_draft.md` (or the configured `OutputDir`) directly or add
+`<!-- -->` comments in it, or give the notes in chat; the model reads the draft
+again before each revision.
+Write briefs, drafts, and reports to `.egm/` at the workspace root (or the
+configured `OutputDir`). Transient session files in `.egm/` are protected
+from accidental git staging via an auto-generated `.egm/.gitignore` containing
+`*`. The per-session scratchpad is not the artifact directory: it belongs to
+one session, and the deliverables must outlive it.
 In Claude Code, `egm:egm-synthesizer` may spawn reviewers (nesting is allowed
 up to 3 levels by default), or the main context may dispatch reviewers directly.
 In Claude Cowork, subagents cannot spawn further subagents, so dispatch

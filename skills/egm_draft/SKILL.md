@@ -23,11 +23,10 @@ the aligned problem and requirements from the brainstorm phase.
     execution instructions in `resources/execution_instructions.md`.
 2.  **Artifact-First Delivery (MANDATORY)**: You are **STRICTLY FORBIDDEN** from
     presenting large proposals, drafts, summaries, or plans directly in the chat
-    pane. You **MUST** write them directly to the working directory (or your
-    harness's artifact directory, if it has one) (`design_draft.md` or
-    `./design_draft.md`) using your file-writing tool and tell the user in chat
-    the file path and ask for review. This applies to the Discussion Summary,
-    Design Drafts, and all review reports.
+    pane. You **MUST** write them directly to `.egm/design_draft.md` (or
+    `<OutputDir>/design_draft.md` if `OutputDir` is specified) using your
+    file-writing tool and tell the user in chat the file path and ask for review.
+    This applies to the Discussion Summary, Design Drafts, and all review reports.
 3.  **Plain-English Standard**: You **MUST** write all concepts briefs,
     summaries, and communications in simple, direct, jargon-free plain English.
     Explain technical mechanisms directly. Do not summarize away substance or
@@ -60,13 +59,20 @@ the aligned problem and requirements from the brainstorm phase.
     strictly one question (`len(questions) == 1`), be the sole tool call in the
     turn, and provide clear, action-oriented options without `(Recommended)`
     prefixes.
+13. **Directory Initialization & Transient Isolation**: Before creating or updating
+    `design_draft.md` in `.egm/` (or `<OutputDir>`), verify that the target
+    directory exists. If not, create it. If writing to `.egm/`, ensure
+    `.egm/.gitignore` exists containing `*` (with a newline) so intermediate
+    design drafts are never tracked or staged in git.
 
 ## Inputs
 
 *   **`Context File`** (Optional): File path to a predecessor document (e.g.,
-    `docs/designs/<feature_name>.md`, `concepts_brief.md`, or
-    `discussion_summary.md`). If omitted, the skill defaults to consuming
-    predecessor context (e.g., `concepts_brief.md` or `discussion_summary.md`).
+    `docs/designs/<feature_name>.md`, `.egm/concepts_brief.md`, `concepts_brief.md`,
+    or `discussion_summary.md`). If omitted, the skill defaults to consuming
+    predecessor context following the polymorphic intake priority.
+*   **`OutputDir`** (Optional): Target directory for intermediate design draft
+    artifacts. Defaults to `.egm/` at the workspace root.
 
 ## Execution Workflow
 
@@ -77,14 +83,14 @@ the document iteratively as the conversation progresses between sections.
 
 ### Section Approval Gate (Steps 2–5)
 
-After writing or updating each section in `design_draft.md` using your
+After writing or updating each section in `.egm/design_draft.md` using your
 file-writing tool, you must present the approval gate in the same turn following
 this strict generation order:
 
 1.  **Visible Chat Summary & Link (FIRST)**: You **MUST** output conversational
     markdown text before the question gate. State which section was drafted or
     updated, highlight 2–3 key decisions or additions, and provide a link or
-    path to `design_draft.md` (e.g., `[design draft](/absolute/project/design_draft.md)` in Codex).
+    path to `.egm/design_draft.md` (e.g., `[design draft](/absolute/project/.egm/design_draft.md)` in Codex).
 2.  **Approval Gate (SECOND)**: In the same turn, present the single-select
     approval choice (using a structured question tool such as `ask_question`
     with `len(questions) == 1` and `is_multi_select: false` if your harness has
@@ -98,7 +104,7 @@ this strict generation order:
 {
   "questions": [
     {
-      "question": "Drafted [Section Name] in design_draft.md. Please review. How would you like to proceed?",
+      "question": "Drafted [Section Name] in .egm/design_draft.md. Please review. How would you like to proceed?",
       "options": [
         "Approve [Section Name] and proceed to next section",
         "Request revisions to [Section Name] (via inline comments or write-in)"
@@ -110,22 +116,22 @@ this strict generation order:
 ```
 
 *   **Option 0 (`Approve [Section Name] and proceed to next section`)**:
-    *   If inline comments on `design_draft.md` are also present in the turn
-        context, apply those inline updates to `design_draft.md` first before
+    *   If inline comments on `.egm/design_draft.md` are also present in the turn
+        context, apply those inline updates to `.egm/design_draft.md` first before
         advancing to the next section.
     *   Otherwise, advance immediately to drafting the next section.
 *   **Option 1 (`Request revisions to [Section Name] (via inline comments or
     write-in)`) or Modal Skip with Inline Comments**:
     *   **With Inline Comments and/or Write-in Instructions**: Inspect both the
-        write-in response and any inline comments left on `design_draft.md`
+        write-in response and any inline comments left on `.egm/design_draft.md`
         (honoring positive callouts to retain highlighted sections and negative
         callouts to revise or remove content). Apply all revisions to
-        `design_draft.md` using your file-writing tool, notify the user, and
+        `.egm/design_draft.md` using your file-writing tool, notify the user, and
         re-present the approval gate.
     *   **Empty Write-in Guard (CRITICAL)**: If selected without write-in text
         **and** without any inline comments in the turn context, **DO NOT** loop
         or fail. Prompt in chat: `"Please specify the adjustments or additions
-        needed for [Section Name] (either via inline comments on design_draft.md
+        needed for [Section Name] (either via inline comments on .egm/design_draft.md
         or here in chat) so I can revise the draft."` and yield active execution
         to wait for user clarification in chat.
 
@@ -135,15 +141,21 @@ this strict generation order:
 2.  **Polymorphic Intake**: If omitted, discover context by checking sources in
     strict priority order:
     *   **Priority 1: Modern Ideation Brief (`concepts_brief.md`)**: Check for
-        `concepts_brief.md` in `./concepts_brief.md`, the conversation artifact
-        directory, or `scratch/concepts_brief.md`. If found, ingest and parse
-        the brief.
+        `concepts_brief.md` following this search chain:
+        1. `.egm/concepts_brief.md` (or `<OutputDir>/concepts_brief.md`)
+        2. `./concepts_brief.md` (working directory / root)
+        3. Conversation artifact directory or harness artifact pane
+        4. `scratch/concepts_brief.md`
+        If found, ingest and parse the brief.
     *   **Priority 2: Discussion Summary (`discussion_summary.md`)**: If
-        `concepts_brief.md` is not found, check for `discussion_summary.md` in
-        `./discussion_summary.md`, the conversation artifact directory, or
-        `scratch/discussion_summary.md`. If found, ingest and parse the summary.
-        **Do NOT** prompt the user to start `/egm-brainstorm` or warn of
-        deprecation.
+        `concepts_brief.md` is not found, check for `discussion_summary.md`
+        following this search chain:
+        1. `.egm/discussion_summary.md` (or `<OutputDir>/discussion_summary.md`)
+        2. `./discussion_summary.md`
+        3. Conversation artifact directory or harness artifact pane
+        4. `scratch/discussion_summary.md`
+        If found, ingest and parse the summary. **Do NOT** prompt the user to start
+        `/egm-brainstorm` or warn of deprecation.
     *   **Priority 3: Interactive Chat Prompt**: If neither file exists, prompt
         the user in chat for the feature's problem statement, goals, and
         technical context, or offer to launch `/egm-brainstorm`.
@@ -161,12 +173,13 @@ this strict generation order:
 3.  **Focus**: Emphasize the *why* (the user need and business value) rather
     than the *how* (technical implementation).
 4.  **Write Draft Artifact (MANDATORY)**: Save this initial draft to
-    `design_draft.md` in the working directory (or your harness's artifact
-    directory, if it has one) using your file-writing tool.
+    `.egm/design_draft.md` (or `<OutputDir>/design_draft.md`) using your
+    file-writing tool. Ensure `.egm/` and `.egm/.gitignore` (with `*`) exist
+    before writing.
 5.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
     printing the draft in the chat. Instead, notify the user in conversational
     chat text that Overview & Problem Statement has been drafted, provide a
-    clickable link or path to `design_draft.md`, and present the Section
+    clickable link or path to `.egm/design_draft.md`, and present the Section
     Approval Gate for `Overview & Goals`.
 
 ### Step 3: Draft Technical Plan
@@ -176,12 +189,13 @@ this strict generation order:
 2.  **Draft Plan**: Describe the proposed changes in clear prose. Identify new
     components, modified files, and API changes. Include text-based block
     diagrams (e.g., ASCII or Mermaid) to illustrate data flow.
-3.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert the "Technical Plan" section using your file-writing tool.
+3.  **Update Draft Artifact (MANDATORY)**: Update `.egm/design_draft.md` (or
+    `<OutputDir>/design_draft.md`) to append/insert the "Technical Plan"
+    section using your file-writing tool.
 4.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
     printing the technical plan in the chat. Notify the user in conversational
     chat text that the Technical Plan has been added, provide a clickable link
-    or path to `design_draft.md`, and present the Section Approval Gate for
+    or path to `.egm/design_draft.md`, and present the Section Approval Gate for
     `Technical Plan`.
 
 ### Step 4: Draft Alternatives
@@ -192,13 +206,13 @@ this strict generation order:
     English in Markdown format.
 3.  **Detail Reasons**: For each alternative, explicitly state *why* it was
     rejected (e.g., higher latency, scaling limitations, team unfamiliarity).
-4.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert the "Alternatives Considered" section using your file-writing
-    tool.
+4.  **Update Draft Artifact (MANDATORY)**: Update `.egm/design_draft.md` (or
+    `<OutputDir>/design_draft.md`) to append/insert the "Alternatives Considered"
+    section using your file-writing tool.
 5.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
     printing the alternatives in the chat. Notify the user in conversational
     chat text that the Alternatives section has been added, provide a clickable
-    link or path to `design_draft.md`, and present the Section Approval Gate for
+    link or path to `.egm/design_draft.md`, and present the Section Approval Gate for
     `Alternatives Considered`.
 
 ### Step 5: Draft Implementation
@@ -221,13 +235,13 @@ any impactful decisions. Follow these guidelines:
     intra-package and sibling documentation links.
 5.  **NO CODE**: Do not generate actual implementation code in this design
     draft. Pseudocode, APIs, or schemas are allowed.
-6.  **Update Draft Artifact (MANDATORY)**: Update `design_draft.md` to
-    append/insert this "Detailed Implementation" section using your file-writing
-    tool.
+6.  **Update Draft Artifact (MANDATORY)**: Update `.egm/design_draft.md` (or
+    `<OutputDir>/design_draft.md`) to append/insert this "Detailed Implementation"
+    section using your file-writing tool.
 7.  **Notify & Verify (No Chat Dumps)**: You are **STRICTLY FORBIDDEN** from
     printing the implementation plan in the chat. Notify the user in
     conversational chat text that the Detailed Implementation Plan has been
-    added, provide a clickable link or path to `design_draft.md`, and present
+    added, provide a clickable link or path to `.egm/design_draft.md`, and present
     the Section Approval Gate for `Detailed Implementation`.
 
 ### Step 6: Write Design Document Finalization
@@ -268,7 +282,7 @@ strictly:
     design in it (Link, Date, Author, Components, Description).
 
 3.  **Self-Evaluate against Zoom Out Standard**: Before saving the file,
-    self-evaluate the compiled design document (contents of `design_draft.md`)
+    self-evaluate the compiled design document (contents of `.egm/design_draft.md`)
     against the EGM Zoom Out Standard
     (`resources/document_standards/zoom-out-standard.md`).
     Verify that the design remains focused on the root problem, does not
@@ -277,7 +291,7 @@ strictly:
     the user, explain the proposed improvements, and ask for confirmation before
     refining the draft.
 
-4.  **Write doc**: Once finalized, write the contents of `design_draft.md` to
+4.  **Write doc**: Once finalized, write the contents of `.egm/design_draft.md` to
     the designated destination file at `<DESIGN_DIR>/<FEATURE>.md` using your
     file-writing tool. Follow the [template](references/design_doc.md) for final
     structure if any adjustments are needed.
